@@ -9,7 +9,10 @@ module.exports = function getRecommendations (config) {
     var limit = settings.limit || config.limit
     var seed = settings.seed || config.seed
     var timeout = settings.timeout || config.timeout
-    var rules = settings.rules
+    var rules = settings.rules || config.rules
+    var url = settings.url || config.url
+    var trackingId = settings.trackingId || config.trackingId
+    var visitorId = settings.visitorId || config.visitorId
 
     if (!_.isArray(seed)) {
       seed = [seed]
@@ -32,23 +35,24 @@ module.exports = function getRecommendations (config) {
       _.assign(data, { rules: rules })
     }
 
-    var url = [
-      config.url,
-      config.trackingId,
+    var requestUrl = [
+      url,
+      trackingId,
       '?strategy=' + strategy,
-      '&id=' + config.visitorId,
+      '&id=' + visitorId,
       '&n=' + limit,
       '&experienceId=' + config.experienceId,
       '&iterationId=' + config.iterationId,
       '&variationId=' + config.variationId
     ].join('')
 
-    return http.post(url, JSON.stringify(data), { timeout: timeout }).then(function (result) {
+    return http.post(requestUrl, JSON.stringify(data), { timeout: timeout }).then(function (result) {
       if (result) {
         var recs = JSON.parse(result)
+        var items = _.get(recs, 'result.items')
 
-        if (recs && recs.result && recs.result.items && recs.result.items.length) {
-          return recs.result.items
+        if (items && items.length) {
+          return items
         }
       }
 

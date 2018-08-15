@@ -6,7 +6,7 @@ bootstrap:
 	npm install
 
 lint:
-	$(BIN)/eslint --ignore-path .gitignore .
+	$(BIN)/standard
 
 test: lint
 	npm test
