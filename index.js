@@ -24,7 +24,7 @@ module.exports = function recommendations (options, overrides) {
     },
     clicked: function (item) {
       item = _.pick(item, ['id', 'weight', 'strategy', 'position'])
-      options.uv.emit('qubit.recommendationItemClicked', item)
+      options.uv.emit('qubit.recommendationItemClick', item)
       options.emitMetric('recommendation.clicked', item.id, item)
     }
   }
