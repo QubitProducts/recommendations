@@ -2,7 +2,7 @@ var _ = require('slapdash')
 var http = require('@qubit/http-api')
 var getLocale = require('./getLocale')
 
-module.exports = function getRecommendations (config) {
+module.exports = function getRecommendations (config, options) {
   return function (settings) {
     settings = settings || {}
 
@@ -36,7 +36,7 @@ module.exports = function getRecommendations (config) {
       _.assign(data, { rules: rules })
     }
 
-    return getLocale().then(function (locale) {
+    return getLocale({ uv: options.uv }).then(function (locale) {
       var requestUrl = [
         url,
         trackingId,

@@ -1,6 +1,6 @@
-module.exports = function getLocale () {
+module.exports = function getLocale (options) {
   return new Promise((resolve, reject) => {
-    window.__qubit.jolt.onEnrichment(/^([^.]+\.)?[a-z]{2}View$/, function (event) {
+    options.uv.on(/^([^.]+\.)?[a-z]{2}View$/, function (event) {
       var { type, language, currency } = event
       if (/^(basket|checkout|transaction)$/i.test(type)) return
       var currentLocale = language || currency || ''
