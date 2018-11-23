@@ -1,7 +1,10 @@
-/* global test expect describe beforeEach afterEach */
+/* global test expect describe beforeEach afterEach jest */
 const uv = require('uv-api')()
 const recommendations = require('../index.js')
 const httpMock = require('@qubit/http-api')
+
+jest.mock('../getLocale')
+const getLocale = require('../getLocale')
 
 const options = {
   emitMetric: () => uv.emit('qubit.metric'),
@@ -24,6 +27,7 @@ const rec = {
 
 afterEach(() => {
   httpMock.post.mockClear()
+  getLocale.mockClear()
 })
 
 test('throws error if options is not present', () => {
@@ -32,12 +36,15 @@ test('throws error if options is not present', () => {
 
 describe('testing basic', () => {
   beforeEach(() => {
-    uv.emit('ecView', { language: 'en-gb', currency: 'GBP' })
+    const language = 'en-gb'
+    const currency = 'GBP'
+    uv.emit('ecView', { language, currency })
     httpMock.__setRecs({
       result: {
         items: [ rec ]
       }
     })
+    getLocale.mockImplementation(() => Promise.resolve([language, currency].join('-').toLowerCase()))
   })
 
   test('requested url is correct', async () => {
@@ -57,6 +64,11 @@ describe('testing basic', () => {
     await recommendations(options).get({ timeout: EXPECTED_TIMEOUT })
     const config = httpMock.post.mock.calls[0][2]
     expect(config).toEqual({ timeout: EXPECTED_TIMEOUT })
+  })
+
+  test('should call getLocale with current options', async () => {
+    await recommendations(options).get()
+    expect(getLocale.mock.calls[0][0].uv).toEqual(options.uv)
   })
 
   test('responds with recs for basic setup', async () => {
