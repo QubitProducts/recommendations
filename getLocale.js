@@ -1,5 +1,5 @@
 module.exports = function getLocale (options) {
-  return new Promise((resolve, reject) => {
+  return new Promise(function (resolve, reject) {
     options.uv.on(/^([^.]+\.)?[a-z]{2}View$/, function (event) {
       var language = event.language
       var currency = event.currency
