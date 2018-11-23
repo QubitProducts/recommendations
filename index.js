@@ -16,7 +16,7 @@ module.exports = function recommendations (options, overrides) {
   }, overrides)
 
   return {
-    get: getRecommendations(config),
+    get: getRecommendations(config, { uv: options.uv }),
     shown: function (item) {
       item = _.pick(item, ['id', 'weight', 'strategy'])
       options.uv.emit('qubit.recommendationItemShown', item)

@@ -1,7 +1,8 @@
 var _ = require('slapdash')
 var http = require('@qubit/http-api')
+var getLocale = require('./getLocale')
 
-module.exports = function getRecommendations (config) {
+module.exports = function getRecommendations (config, options) {
   return function (settings) {
     settings = settings || {}
 
@@ -35,30 +36,34 @@ module.exports = function getRecommendations (config) {
       _.assign(data, { rules: rules })
     }
 
-    var requestUrl = [
-      url,
-      trackingId,
-      '?strategy=' + strategy,
-      '&id=' + visitorId,
-      '&n=' + limit,
-      '&experienceId=' + config.experienceId,
-      '&iterationId=' + config.iterationId,
-      '&variationId=' + config.variationId
-    ].join('')
+    return getLocale({ uv: options.uv }).then(function (locale) {
+      var requestUrl = [
+        url,
+        trackingId,
+        '?strategy=' + strategy,
+        '&id=' + visitorId,
+        '&n=' + limit,
+        '&experienceId=' + config.experienceId,
+        '&iterationId=' + config.iterationId,
+        '&variationId=' + config.variationId,
+        '&locale=' + locale
+      ].join('')
 
-    return http.post(requestUrl, JSON.stringify(data), { timeout: timeout }).then(function (result) {
-      if (result) {
-        var recs = JSON.parse(result)
-        var items = _.get(recs, 'result.items')
+      var request = http.post(requestUrl, JSON.stringify(data), { timeout: timeout })
+      return request.then(function (result) {
+        if (result) {
+          var recs = JSON.parse(result)
+          var items = _.get(recs, 'result.items')
 
-        if (items && items.length) {
-          return items
+          if (items && items.length) {
+            return items
+          }
         }
-      }
 
-      var error = new Error('No recommendations')
-      error.code = 'NO_RECOMMENDATIONS'
-      throw error
+        var error = new Error('No recommendations')
+        error.code = 'NO_RECOMMENDATIONS'
+        throw error
+      })
     })
   }
 }

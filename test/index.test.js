@@ -1,12 +1,21 @@
-/* global test expect describe beforeEach */
+/* global test expect describe beforeEach afterEach jest */
 const uv = require('uv-api')()
 const recommendations = require('../index.js')
-const defaults = require('../defaults.js')
+const httpMock = require('@qubit/http-api')
+
+jest.mock('../getLocale')
+const getLocale = require('../getLocale')
 
 const options = {
   emitMetric: () => uv.emit('qubit.metric'),
-  uv: { emit: uv.emit },
-  meta: { trackingId: 'menards' }
+  uv: { emit: uv.emit, on: uv.on },
+  meta: {
+    trackingId: 'menards',
+    visitorId: '123adwqddqdw',
+    experienceId: 123456,
+    iterationId: 600100,
+    variationId: 165767
+  }
 }
 
 const rec = {
@@ -16,25 +25,57 @@ const rec = {
   position: 1
 }
 
+afterEach(() => {
+  httpMock.post.mockClear()
+  getLocale.mockClear()
+})
+
 test('throws error if options is not present', () => {
   expect(() => (recommendations())).toThrow()
 })
 
 describe('testing basic', () => {
-  test('responds with recs for basic setup', () => {
-    expect.assertions(1)
-
-    return recommendations(options).get().then((recs) => {
-      expect(recs).toBeInstanceOf(Array)
+  beforeEach(() => {
+    const language = 'en-gb'
+    const currency = 'GBP'
+    uv.emit('ecView', { language, currency })
+    httpMock.__setRecs({
+      result: {
+        items: [ rec ]
+      }
     })
+    getLocale.mockImplementation(() => Promise.resolve([language, currency].join('-').toLowerCase()))
   })
 
-  test('reponds with default limit of recs', () => {
+  test('requested url is correct', async () => {
+    await recommendations(options).get()
+    const calledUrl = httpMock.post.mock.calls[0][0]
+    expect(calledUrl).toBe('https://recs.qubit.com/vc/recommend/2.0/menards?strategy=pop&id=123adwqddqdw&n=10&experienceId=123456&iterationId=600100&variationId=165767&locale=en-gb-gbp')
+  })
+
+  test('data passed is correct', async () => {
+    await recommendations(options).get()
+    const data = httpMock.post.mock.calls[0][1]
+    expect(data).toBe(JSON.stringify({ h: ['all'] }))
+  })
+
+  test('called with the correct timeout', async () => {
+    const EXPECTED_TIMEOUT = 1000
+    await recommendations(options).get({ timeout: EXPECTED_TIMEOUT })
+    const config = httpMock.post.mock.calls[0][2]
+    expect(config).toEqual({ timeout: EXPECTED_TIMEOUT })
+  })
+
+  test('should call getLocale with current options', async () => {
+    await recommendations(options).get()
+    expect(getLocale.mock.calls[0][0].uv).toEqual(options.uv)
+  })
+
+  test('responds with recs for basic setup', async () => {
     expect.assertions(1)
 
-    return recommendations(options).get().then((recs) => {
-      expect(recs).toHaveLength(defaults.limit)
-    })
+    const recs = await recommendations(options).get()
+    expect(recs).toBeInstanceOf(Array)
   })
 })
 
