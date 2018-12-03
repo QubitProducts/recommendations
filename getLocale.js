@@ -1,3 +1,5 @@
+const Promise = require('sync-p')
+
 module.exports = function getLocale (options) {
   return new Promise(function (resolve, reject) {
     options.uv.on(/^([^.]+\.)?[a-z]{2}View$/, function (event) {
