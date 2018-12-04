@@ -87,6 +87,7 @@ describe('test metric events', () => {
   test('clicked event emits 2 qp events', () => {
     recommendations(options).clicked(rec)
     expect(uv.events).toHaveLength(2)
+    expect(uv.events[0].meta.type).toEqual('qubit.recommendationItemClick')
   })
 
   test('shown event emits 2 qp events', () => {
