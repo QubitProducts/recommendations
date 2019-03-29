@@ -44,7 +44,12 @@ describe('testing basic', () => {
         items: [ rec ]
       }
     })
-    getLocale.mockImplementation(() => Promise.resolve([language, currency].join('-').toLowerCase()))
+    getLocale.mockImplementation(options => {
+      return Promise.resolve([
+        options.language || language,
+        options.language || currency
+      ].join('-').toLowerCase())
+    })
   })
 
   test('requested url is correct', async () => {
@@ -69,6 +74,28 @@ describe('testing basic', () => {
   test('should call getLocale with current options', async () => {
     await recommendations(options).get()
     expect(getLocale.mock.calls[0][0].uv).toEqual(options.uv)
+  })
+
+  test('getLocale uses view event when no overrides present', async () => {
+    const locale = await getLocale({ uv: options.uv })
+    expect(locale).toEqual('en-gb-gbp')
+  })
+
+  test('config overrides view event locale when present', async () => {
+    const config = {
+      language: 'en-us',
+      currency: 'USD'
+    }
+    const recommendations = require('../index.js')(options, config)
+    await recommendations.get()
+    expect(getLocale.mock.calls[0][0].language).toEqual(config.language)
+    expect(getLocale.mock.calls[0][0].currency).toEqual(config.currency)
+  })
+
+  test('settings override view event locale when presting', async () => {
+    const currencyOverride = 'USD'
+    await recommendations(options).get({ currency: currencyOverride })
+    expect(getLocale.mock.calls[0][0].currency).toEqual(currencyOverride)
   })
 
   test('responds with recs for basic setup', async () => {

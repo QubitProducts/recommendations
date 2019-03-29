@@ -14,6 +14,8 @@ module.exports = function getRecommendations (config, options) {
     var url = settings.url || config.url
     var trackingId = settings.trackingId || config.trackingId
     var visitorId = settings.visitorId || config.visitorId
+    var currency = settings.currency || config.currency
+    var language = settings.language || config.language
 
     if (!_.isArray(seed)) {
       seed = [seed]
@@ -36,7 +38,11 @@ module.exports = function getRecommendations (config, options) {
       _.assign(data, { rules: rules })
     }
 
-    return getLocale({ uv: options.uv }).then(function (locale) {
+    return getLocale({
+      uv: options.uv,
+      currency: currency,
+      language: language
+    }).then(function (locale) {
       var requestUrl = [
         url,
         trackingId,
