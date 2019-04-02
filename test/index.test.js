@@ -35,10 +35,9 @@ test('throws error if options is not present', () => {
 })
 
 describe('testing basic', () => {
+  let language = 'en-GB'
+  let currency = 'GBP'
   beforeEach(() => {
-    const language = 'en-gb'
-    const currency = 'GBP'
-    uv.emit('ecView', { language, currency })
     httpMock.__setRecs({
       result: {
         items: [ rec ]
@@ -46,25 +45,28 @@ describe('testing basic', () => {
     })
     getLocale.mockImplementation(options => {
       return Promise.resolve([
-        options.language || language,
-        options.language || currency
+        language || options.defaultLanguage,
+        currency || options.defaultCurrency
       ].join('-').toLowerCase())
     })
   })
 
   test('requested url is correct', async () => {
+    uv.emit('ecView', { language, currency })
     await recommendations(options).get()
     const calledUrl = httpMock.post.mock.calls[0][0]
     expect(calledUrl).toBe('https://recs.qubit.com/vc/recommend/2.0/menards?strategy=pop&id=123adwqddqdw&n=10&experienceId=123456&iterationId=600100&variationId=165767&locale=en-gb-gbp')
   })
 
   test('data passed is correct', async () => {
+    uv.emit('ecView', { language, currency })
     await recommendations(options).get()
     const data = httpMock.post.mock.calls[0][1]
     expect(data).toBe(JSON.stringify({ h: ['all'] }))
   })
 
   test('called with the correct timeout', async () => {
+    uv.emit('ecView', { language, currency })
     const EXPECTED_TIMEOUT = 1000
     await recommendations(options).get({ timeout: EXPECTED_TIMEOUT })
     const config = httpMock.post.mock.calls[0][2]
@@ -72,33 +74,50 @@ describe('testing basic', () => {
   })
 
   test('should call getLocale with current options', async () => {
+    uv.emit('ecView', { language, currency })
     await recommendations(options).get()
     expect(getLocale.mock.calls[0][0].uv).toEqual(options.uv)
   })
 
   test('getLocale uses view event when no overrides present', async () => {
+    uv.emit('ecView', { language, currency })
     const locale = await getLocale({ uv: options.uv })
     expect(locale).toEqual('en-gb-gbp')
   })
 
-  test('config overrides view event locale when present', async () => {
+  test('getLocale uses defaults when view event values not present', async () => {
+    language = null
+    currency = null
+    uv.emit('ecView', { language, currency })
+    const locale = await getLocale({
+      uv: options.uv,
+      defaultCurrency: 'USD',
+      defaultLanguage: 'en-US'
+    })
+    expect(locale).toEqual('en-us-usd')
+  })
+
+  test('locale defaults to config values when present', async () => {
+    uv.emit('ecView', { language: null, currency: null })
     const config = {
-      language: 'en-us',
-      currency: 'USD'
+      defaultLanguage: 'en-us',
+      defaultCurrency: 'USD'
     }
     const recommendations = require('../index.js')(options, config)
     await recommendations.get()
-    expect(getLocale.mock.calls[0][0].language).toEqual(config.language)
-    expect(getLocale.mock.calls[0][0].currency).toEqual(config.currency)
+    expect(getLocale.mock.calls[0][0].defaultLanguage).toEqual(config.defaultLanguage)
+    expect(getLocale.mock.calls[0][0].defaultCurrency).toEqual(config.defaultCurrency)
   })
 
-  test('settings override view event locale when presting', async () => {
-    const currencyOverride = 'USD'
-    await recommendations(options).get({ currency: currencyOverride })
-    expect(getLocale.mock.calls[0][0].currency).toEqual(currencyOverride)
+  test('locale defaults to request settings when present', async () => {
+    uv.emit('ecView', { language, currency: null })
+    const fallbackCurrency = 'USD'
+    await recommendations(options).get({ defaultCurrency: fallbackCurrency })
+    expect(getLocale.mock.calls[0][0].defaultCurrency).toEqual(fallbackCurrency)
   })
 
   test('responds with recs for basic setup', async () => {
+    uv.emit('ecView', { language, currency })
     expect.assertions(1)
 
     const recs = await recommendations(options).get()

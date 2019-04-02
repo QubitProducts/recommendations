@@ -69,17 +69,17 @@ This package assumes usage within a Qubit experience. If using elsewhere you can
 
 The Qubit Recommendations API endpoint.
 
-### currency
+### defaultCurrency
 *type*: `String`
 *default*: `currency` emitted in QP view event
 
-Allows you to override the currency for the recs endpoint locale; e.g. 'GBP'
+Allows you to add a fallback currency for the recs endpoint locale; e.g. 'GBP'
 
-### language
+### defaultLanguage
 *type*: `String`
 *default*: `language` emitted in QP view event
 
-Allows you to override the language for the recs endpoint locale; e.g. 'en-gb'
+Allows you to add a fallback language for the recs endpoint locale; e.g. 'en-gb'
 
 ## Usage
 
