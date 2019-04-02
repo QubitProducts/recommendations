@@ -1,6 +1,6 @@
 {
   "name": "@qubit/recommendations",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "Wrapper around Qubit's Product Recommendations API.",
   "main": "index.js",
   "scripts": {
