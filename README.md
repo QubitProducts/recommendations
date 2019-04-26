@@ -13,9 +13,18 @@ You can override as little or as much of the configuration as shown in [Usage](#
 *default*: `'pop'`
 
 Can be:
-- 'pp1' (viewed together or recently viewed if more than 1 seed is passed)
-- 'pp3' (bought together)
-- 'pop' (popular)
+| Strategy Name | Placement |
+| --- | --- |
+| engagement | Product detail pages, product listing pages |
+| recent | Product listing pages, Homepage |
+| upsell | Basket pages, checkout pages |
+| conversion | Product detail pages |
+| trending | Homepage |
+| popular | Homepage, search results pages |
+| new | Homepage |
+
+See our [documentation](https://docs.qubit.com/content/developers/api-recommendations#recommended-use-of-our-strategies) page for more details
+
 
 ### limit
 *type*: `Number`
@@ -28,6 +37,20 @@ A `Number` specifying the amount of recommendations you wish to return. The API 
 *default*: 'all'
 
 You can seed (provide context to the recommendations API) with product IDs/SKUs (depending on your setup) and/or product categories. Product IDs/SKUs can be passed as `String`, however product categories must be passed as objects, e.g. `{ category: 'jeans' }`. Place within an `Array` to combine - see [Advanced](#advanced) usage example.
+
+_Please note that if you're passing in seed as an array, the maximum amount of IDs you should pass is 3_. Any more than this, and only the last 3 items passed in will be considered; i.e.
+
+```js
+ // Product ID 123 will be no be considered in the API response
+const idSeeds = ['123','456','789','ABC']
+
+// Could process this within the code by doing something like the below:
+const recommendations = require('@qubit/recommendations')(options, {
+  strategy: 'engagement',
+  limit: 20,
+  seed: idSeeds.slice(-3) // only take most recent three items in array
+})
+```
 
 ### rules
 *type*: `Array`
@@ -103,7 +126,7 @@ If you'll be making only one type of recommendations request where the strategy 
 const productId = options.state.get('productId')
 
 const recommendations = require('@qubit/recommendations')(options, {
-  strategy: 'pp1',
+  strategy: 'engagement',
   limit: 20,
   seed: productId
 })
@@ -123,7 +146,7 @@ Configuration passed to `get` overrides any configuration you pass when initiali
 const recommendations = require('@qubit/recommendations')(options)
 
 recommendations.get({
-  strategy: 'pp1',
+  strategy: 'engagement',
   limit: 30,
   seed: [{ category: 'jeans' }, 'ABC123', { category: 'blazers' }],
   rules: [{
@@ -151,7 +174,7 @@ To enable the metrics and reporting features within the Qubit app for a recommen
 recommendations.shown({
   id: 'ABC123',
   weight: '0.9',
-  strategy: 'pop'
+  strategy: 'popular'
 })
 ```
 
@@ -161,7 +184,7 @@ recommendations.shown({
 recommendations.clicked({
   id: 'ABC123',
   weight: '0.9',
-  strategy: 'pop',
+  strategy: 'popular',
   position: 1
 })
 ```
