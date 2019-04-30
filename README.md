@@ -13,6 +13,7 @@ You can override as little or as much of the configuration as shown in [Usage](#
 *default*: `'pop'`
 
 Can be:
+
 | Strategy Name | Placement |
 | --- | --- |
 | engagement | Product detail pages, product listing pages |
