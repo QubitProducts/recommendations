@@ -9,13 +9,13 @@
   },
   "dependencies": {
     "@qubit/http-api": "^1.4.0",
-    "jquery": "^3.4.1",
     "slapdash": "^1.3.3",
     "sync-p": "^1.1.5"
   },
   "devDependencies": {
-    "jest": "^23.6.0",
-    "standard": "^11.0.1",
+    "jest": "^24.8.0",
+    "jquery": "^3.4.1",
+    "standard": "^12.0.1",
     "uv-api": "^4.2.0"
   },
   "jest": {
