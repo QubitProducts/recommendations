@@ -2,18 +2,17 @@
 const uv = require('uv-api')()
 const _ = require('slapdash')
 const $ = require('jquery')
+const testProperty = require('./test-property')
 
 const recommendations = require('../..')({
   uv: { emit: uv.emit, on: uv.on },
   emitMetric: () => {},
-  meta: {
-    trackingId: 'mandmdirect',
-    visitorId: '1552489201831.141761'
-  }
+  meta: testProperty
 }, {
   url: 'https://api-dev.qubit.com/graphql',
   strategy: 'engagement',
-  seed: 'OF1741'
+  seed: 'OF1741',
+  limit: 5
 })
 
 uv.emit('ecView', {
@@ -24,6 +23,7 @@ uv.emit('ecView', {
 recommendations
   .get()
   .then(recs => {
+    console.log(recs)
     const $recs = recs.map((product, i) => {
       const { details } = product
 
