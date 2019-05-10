@@ -1,29 +1,35 @@
 /* eslint-disable no-console */
+const uv = require('uv-api')()
 const _ = require('slapdash')
 const $ = require('jquery')
 
 const recommendations = require('../..')({
-  uv: {
-    emit: (...args) => {
-      console.log('SENDING', args)
-    }
-  },
-  emitMetric: (...args) => {
-    console.log('SENDING', args)
-  },
+  uv: { emit: uv.emit, on: uv.on },
+  emitMetric: () => {},
   meta: {
-    trackingId: 'studio',
-    visitorId: 'qubit-test'
+    trackingId: 'mandmdirect',
+    visitorId: '1552489201831.141761'
   }
+}, {
+  url: 'https://api-dev.qubit.com/graphql',
+  strategy: 'engagement',
+  seed: 'OF1741'
 })
 
-recommendations.get().then((recs) => {
-  const $recs = recs.map((product, i) => {
-    const { details } = product
+uv.emit('ecView', {
+  language: 'en-gb',
+  currency: 'gbp'
+})
 
-    recommendations.shown(product)
+recommendations
+  .get()
+  .then(recs => {
+    const $recs = recs.map((product, i) => {
+      const { details } = product
 
-    return $(`
+      recommendations.shown(product)
+
+      return $(`
       <div class="t001-rec" style='display: inline-block; width: 100px; overflow: hidden; margin: 20px;'>
         <a href="${details.url}">
           <img class="t001-img" src="${details.image_url}" style='width: 100%' />
@@ -31,18 +37,19 @@ recommendations.get().then((recs) => {
           <div class="t001-price">${details.unit_sale_price}</div>
         </a>
       </div>
-    `).click((e) => {
-      recommendations.clicked(_.assign({ position: i + 1 }, product))
+    `).click(e => {
+        recommendations.clicked(_.assign({ position: i + 1 }, product))
+      })
     })
-  })
 
-  const $html = $(`
+    const $html = $(`
     <div class="t001-carousel">
       
     </div>
   `).append($recs)
 
-  $('body').html($html)
-}).catch(err => {
-  console.log(err)
-})
+    $('body').html($html)
+  })
+  .catch(err => {
+    console.log(err)
+  })
