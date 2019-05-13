@@ -4,16 +4,31 @@ const _ = require('slapdash')
 const $ = require('jquery')
 const testProperty = require('./test-property')
 
-const recommendations = require('../..')({
-  uv: { emit: uv.emit, on: uv.on },
-  emitMetric: () => {},
-  meta: testProperty
-}, {
-  url: 'https://api-dev.qubit.com/graphql',
-  strategy: 'engagement',
-  seed: 'OF1741',
-  limit: 5
-})
+const recommendations = require('../..')(
+  {
+    uv: uv,
+    emitMetric: () => {},
+    meta: testProperty
+  },
+  {
+    url: 'https://api-dev.qubit.com/graphql',
+    strategy: 'engagement',
+    seed: 'OF1741',
+    limit: 10,
+    rules: [
+      {
+        name: 'Blacklist high price',
+        condition: { '>=': [{ var: 'rec.unit_price' }, 10] },
+        factor: 0
+      },
+      {
+        name: 'Promote Shirts-Tops',
+        condition: { '===': [{ var: 'rec.category' }, 'Shirts-Tops'] },
+        factor: 2
+      }
+    ]
+  }
+)
 
 uv.emit('ecView', {
   language: 'en-gb',
@@ -30,7 +45,7 @@ recommendations
       recommendations.shown(product)
 
       return $(`
-      <div class="t001-rec" style='display: inline-block; width: 100px; overflow: hidden; margin: 20px;'>
+      <div class="t001-rec" style='display: inline-block; width: 100px; margin: 20px;'>
         <a href="${details.url}">
           <img class="t001-img" src="${details.image_url}" style='width: 100%' />
           <div class="t001-name">${details.name}</div>
