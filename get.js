@@ -85,7 +85,7 @@ module.exports = function getRecommendations (config, options) {
           items: limit,
           strategy: [{ name: strategy }],
           seed: seed,
-          rules: JSON.stringify(rules),
+          rules: rules,
           locale: locale
         }
       }
