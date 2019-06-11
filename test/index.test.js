@@ -19,10 +19,11 @@ const options = {
 }
 
 const rec = {
-  id: 'ABC123',
-  weight: '0.9',
-  strategy: 'pop',
-  position: 1
+  weight: 202.5,
+  strategy: 'trending_ols_views_1',
+  product: {
+    productId: '730699'
+  }
 }
 
 afterEach(() => {
@@ -31,7 +32,7 @@ afterEach(() => {
 })
 
 test('throws error if options is not present', () => {
-  expect(() => (recommendations())).toThrow()
+  expect(() => recommendations()).toThrow()
 })
 
 describe('testing basic', () => {
@@ -39,15 +40,17 @@ describe('testing basic', () => {
   let currency = 'GBP'
   beforeEach(() => {
     httpMock.__setRecs({
-      result: {
-        items: [ rec ]
-      }
+      data: { property: { visitor: { productRecommendations: [rec] } } }
     })
     getLocale.mockImplementation(options => {
-      return Promise.resolve([
-        language || options.defaultLanguage,
-        currency || options.defaultCurrency
-      ].join('-').toLowerCase())
+      return Promise.resolve(
+        [
+          language || options.defaultLanguage,
+          currency || options.defaultCurrency
+        ]
+          .join('-')
+          .toLowerCase()
+      )
     })
   })
 
@@ -55,14 +58,28 @@ describe('testing basic', () => {
     uv.emit('ecView', { language, currency })
     await recommendations(options).get()
     const calledUrl = httpMock.post.mock.calls[0][0]
-    expect(calledUrl).toBe('https://recs.qubit.com/vc/recommend/2.0/menards?strategy=pop&id=123adwqddqdw&n=10&experienceId=123456&iterationId=600100&variationId=165767&locale=en-gb-gbp')
+    expect(calledUrl).toBe('https://api.qubit.com/graphql')
   })
 
   test('data passed is correct', async () => {
     uv.emit('ecView', { language, currency })
     await recommendations(options).get()
     const data = httpMock.post.mock.calls[0][1]
-    expect(data).toBe(JSON.stringify({ h: ['all'] }))
+    expect(data).toBe(
+      JSON.stringify({
+        query:
+          'query ($trackingId: String!, $contextId: String!, $experienceId: Int, $items: Int!, $strategy: [RecommendationStrategyInput!], $seed: [RecommendationSeedInput!], $rules: [RecommendationRuleInput!], $locale: String) {\n  property(trackingId: $trackingId, locale: $locale) {\n    visitor(contextId: $contextId) {\n      productRecommendations(experienceId: $experienceId, items: $items, strategy: $strategy, seed: $seed, customRules: $rules) {\n        strategy\n        weight\n        product {\n          product_id: productId\n          currency\n          sku_code: skuCode\n          name\n          description\n          url\n          categories {\n            name\n          }\n          images {\n            url\n          }\n          stock\n          language\n          locale\n          views\n          views_ip: viewsIp\n          unit_sale_price: unitSalePrice\n          unit_price: unitPrice\n          additionalFields\n        }\n      }\n    }\n  }\n}',
+        variables: {
+          trackingId: 'menards',
+          contextId: '123adwqddqdw',
+          experienceId: 123456,
+          items: 10,
+          strategy: [{ name: 'pop' }],
+          seed: null,
+          locale: 'en-gb-gbp'
+        }
+      })
+    )
   })
 
   test('called with the correct timeout', async () => {
@@ -105,8 +122,12 @@ describe('testing basic', () => {
     }
     const recommendations = require('../index.js')(options, config)
     await recommendations.get()
-    expect(getLocale.mock.calls[0][0].defaultLanguage).toEqual(config.defaultLanguage)
-    expect(getLocale.mock.calls[0][0].defaultCurrency).toEqual(config.defaultCurrency)
+    expect(getLocale.mock.calls[0][0].defaultLanguage).toEqual(
+      config.defaultLanguage
+    )
+    expect(getLocale.mock.calls[0][0].defaultCurrency).toEqual(
+      config.defaultCurrency
+    )
   })
 
   test('locale defaults to request settings when present', async () => {
