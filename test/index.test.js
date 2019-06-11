@@ -22,7 +22,7 @@ const rec = {
   weight: 202.5,
   strategy: 'trending_ols_views_1',
   product: {
-    productId: '730699'
+    product_id: '730699'
   }
 }
 
@@ -139,10 +139,14 @@ describe('testing basic', () => {
 
   test('responds with recs for basic setup', async () => {
     uv.emit('ecView', { language, currency })
-    expect.assertions(1)
+    // expect.assertions(4)
 
     const recs = await recommendations(options).get()
     expect(recs).toBeInstanceOf(Array)
+    expect(recs[0].weight).toEqual(202.5)
+    expect(recs[0].strategy).toEqual('trending_ols_views_1')
+    expect(recs[0].id).toEqual('730699')
+    expect(recs[0].details.product_id).toEqual('730699')
   })
 })
 
