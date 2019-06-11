@@ -22,7 +22,10 @@ const rec = {
   weight: 202.5,
   strategy: 'trending_ols_views_1',
   product: {
-    product_id: '730699'
+    product_id: '730699',
+    additionalFields: {
+      gender: 'women'
+    }
   }
 }
 
@@ -147,6 +150,7 @@ describe('testing basic', () => {
     expect(recs[0].strategy).toEqual('trending_ols_views_1')
     expect(recs[0].id).toEqual('730699')
     expect(recs[0].details.product_id).toEqual('730699')
+    expect(recs[0].details.gender).toEqual('women')
   })
 })
 
