@@ -11,7 +11,6 @@ const recommendations = require('../..')(
     meta: testProperty
   },
   {
-    url: 'https://api-dev.qubit.com/graphql',
     strategy: 'engagement',
     seed: 'OF1741',
     limit: 10,

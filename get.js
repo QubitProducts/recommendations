@@ -3,7 +3,7 @@ var http = require('@qubit/http-api')
 var getLocale = require('./getLocale')
 
 var query = [
-  'query ($trackingId: String!, $contextId: String!, $experienceId: Int, $items: Int!, $strategy: [RecommendationStrategy!], $seed: [RecommendationSeed!], $rules: String, $locale: String) {',
+  'query ($trackingId: String!, $contextId: String!, $experienceId: Int, $items: Int!, $strategy: [RecommendationStrategyInput!], $seed: [RecommendationSeedInput!], $rules: [RecommendationRuleInput!], $locale: String) {',
   '  property(trackingId: $trackingId, locale: $locale) {',
   '    visitor(contextId: $contextId) {',
   '      productRecommendations(experienceId: $experienceId, items: $items, strategy: $strategy, seed: $seed, customRules: $rules) {',
