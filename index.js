@@ -7,7 +7,7 @@ module.exports = function recommendations (options, overrides) {
     throw new Error('No `options` object passed')
   }
 
-  var config = _.assign(defaults, {
+  var config = _.assign({}, defaults, {
     trackingId: options.meta.trackingId,
     visitorId: options.meta.visitorId,
     experienceId: options.meta.experienceId,
