@@ -6,15 +6,17 @@ const httpMock = require('@qubit/http-api')
 jest.mock('../getLocale')
 const getLocale = require('../getLocale')
 
-const options = {
-  emitMetric: () => uv.emit('qubit.metric'),
-  uv: { emit: uv.emit, on: uv.on },
-  meta: {
-    trackingId: 'menards',
-    visitorId: '123adwqddqdw',
-    experienceId: 123456,
-    iterationId: 600100,
-    variationId: 165767
+const getOptions = (overrides = {}) => {
+  return {
+    emitMetric: () => uv.emit('qubit.metric'),
+    uv: { emit: uv.emit, on: uv.on },
+    meta: {
+      trackingId: 'menards',
+      visitorId: '123adwqddqdw',
+      experienceId: overrides.experienceId || 123456,
+      iterationId: 600100,
+      variationId: 165767
+    }
   }
 }
 
@@ -53,14 +55,32 @@ describe('testing basic', () => {
 
   test('requested url is correct', async () => {
     uv.emit('ecView', { language, currency })
-    await recommendations(options).get()
+    await recommendations(getOptions()).get()
     const calledUrl = httpMock.post.mock.calls[0][0]
     expect(calledUrl).toBe('https://recs.qubit.com/vc/recommend/2.0/menards?strategy=pop&id=123adwqddqdw&n=10&experienceId=123456&iterationId=600100&variationId=165767&locale=en-gb-gbp')
   })
 
+  test('second instanciation should be independant', async () => {
+    uv.emit('ecView', { language, currency })
+
+    const optionsA = getOptions()
+    const recsA = recommendations(optionsA)
+
+    const optionsB = getOptions({ experienceId: 4567 })
+    const recsB = recommendations(optionsB)
+
+    await recsA.get()
+    const calledUrlA = httpMock.post.mock.calls[0][0]
+    expect(calledUrlA).toBe('https://recs.qubit.com/vc/recommend/2.0/menards?strategy=pop&id=123adwqddqdw&n=10&experienceId=123456&iterationId=600100&variationId=165767&locale=en-gb-gbp')
+
+    await recsB.get()
+    const calledUrlB = httpMock.post.mock.calls[1][0]
+    expect(calledUrlB).toBe('https://recs.qubit.com/vc/recommend/2.0/menards?strategy=pop&id=123adwqddqdw&n=10&experienceId=4567&iterationId=600100&variationId=165767&locale=en-gb-gbp')
+  })
+
   test('data passed is correct', async () => {
     uv.emit('ecView', { language, currency })
-    await recommendations(options).get()
+    await recommendations(getOptions()).get()
     const data = httpMock.post.mock.calls[0][1]
     expect(data).toBe(JSON.stringify({ h: ['all'] }))
   })
@@ -68,24 +88,27 @@ describe('testing basic', () => {
   test('called with the correct timeout', async () => {
     uv.emit('ecView', { language, currency })
     const EXPECTED_TIMEOUT = 1000
-    await recommendations(options).get({ timeout: EXPECTED_TIMEOUT })
+    await recommendations(getOptions()).get({ timeout: EXPECTED_TIMEOUT })
     const config = httpMock.post.mock.calls[0][2]
     expect(config).toEqual({ timeout: EXPECTED_TIMEOUT })
   })
 
   test('should call getLocale with current options', async () => {
     uv.emit('ecView', { language, currency })
+    const options = getOptions()
     await recommendations(options).get()
     expect(getLocale.mock.calls[0][0].uv).toEqual(options.uv)
   })
 
   test('getLocale uses view event when no overrides present', async () => {
+    const options = getOptions()
     uv.emit('ecView', { language, currency })
     const locale = await getLocale({ uv: options.uv })
     expect(locale).toEqual('en-gb-gbp')
   })
 
   test('getLocale uses defaults when view event values not present', async () => {
+    const options = getOptions()
     language = null
     currency = null
     uv.emit('ecView', { language, currency })
@@ -98,6 +121,7 @@ describe('testing basic', () => {
   })
 
   test('locale defaults to config values when present', async () => {
+    const options = getOptions()
     uv.emit('ecView', { language: null, currency: null })
     const config = {
       defaultLanguage: 'en-us',
@@ -110,6 +134,7 @@ describe('testing basic', () => {
   })
 
   test('locale defaults to request settings when present', async () => {
+    const options = getOptions()
     uv.emit('ecView', { language, currency: null })
     const fallbackCurrency = 'USD'
     await recommendations(options).get({ defaultCurrency: fallbackCurrency })
@@ -117,6 +142,7 @@ describe('testing basic', () => {
   })
 
   test('responds with recs for basic setup', async () => {
+    const options = getOptions()
     uv.emit('ecView', { language, currency })
     expect.assertions(1)
 
@@ -131,12 +157,14 @@ describe('test metric events', () => {
   })
 
   test('clicked event emits 2 qp events', () => {
+    const options = getOptions()
     recommendations(options).clicked(rec)
     expect(uv.events).toHaveLength(2)
     expect(uv.events[0].meta.type).toEqual('qubit.recommendationItemClick')
   })
 
   test('shown event emits 2 qp events', () => {
+    const options = getOptions()
     recommendations(options).shown(rec)
     expect(uv.events).toHaveLength(2)
   })
