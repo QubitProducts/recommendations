@@ -53,22 +53,8 @@ const recommendations2 = require('../..')(
     meta: testProperty
   },
   {
-    strategy: 'engagement',
-    seed: 'OF1741',
-    limit: 10,
-    experienceId: 456,
-    rules: [
-      {
-        name: 'Blacklist high price',
-        condition: { '<=': [{ var: 'rec.unit_price' }, 10] },
-        factor: 0
-      },
-      {
-        name: 'Promote Shirts-Tops',
-        condition: { '===': [{ var: 'rec.category' }, 'Shirts-Tops'] },
-        factor: 2
-      }
-    ]
+    strategy: 'popular',
+    limit: 10
   }
 )
 
@@ -99,11 +85,7 @@ recommendations
       })
     })
 
-    const $html = $(`
-    <div class="t001-carousel">
-      
-    </div>
-  `).append($recs)
+    const $html = $(`<div class="t001-carousel"></div>`).append($recs)
 
     $('body').append($html)
   })
