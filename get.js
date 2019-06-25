@@ -92,9 +92,8 @@ module.exports = function getRecommendations (config, options) {
         url: url
       }).then(function (result) {
         if (result) {
-          var data = JSON.parse(result)
           var items = _.get(
-            data,
+            result,
             'data.property.visitor.productRecommendations'
           )
           if (items && items.length) {

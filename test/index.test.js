@@ -21,12 +21,22 @@ const getOptions = (overrides = {}) => {
 }
 
 const rec = {
-  weight: 202.5,
-  strategy: 'trending_ols_views_1',
-  product: {
-    product_id: '730699',
-    additionalFields: {
-      gender: 'women'
+  data: {
+    property: {
+      visitor: {
+        productRecommendations: [
+          {
+            weight: 202.5,
+            strategy: 'trending_ols_views_1',
+            product: {
+              product_id: '730699',
+              additionalFields: {
+                gender: 'women'
+              }
+            }
+          }
+        ]
+      }
     }
   }
 }
@@ -79,9 +89,7 @@ describe('testing basic', () => {
   let language = 'en-GB'
   let currency = 'GBP'
   beforeEach(() => {
-    httpMock.__setRecs({
-      data: { property: { visitor: { productRecommendations: [rec] } } }
-    })
+    httpMock.__setRecs(rec)
     getLocale.mockImplementation(options => {
       return Promise.resolve(
         [
@@ -114,6 +122,7 @@ describe('testing basic', () => {
     const calledVariablesA = httpMock.query.mock.calls[0][1]
     expect(calledVariablesA.experienceId).toBe(123456)
 
+    httpMock.__setRecs(rec)
     await recsB.get()
     const calledVariablesB = httpMock.query.mock.calls[1][1]
     expect(calledVariablesB.experienceId).toBe(4567)
@@ -122,9 +131,9 @@ describe('testing basic', () => {
   test('data passed is correct', async () => {
     uv.emit('ecView', { language, currency })
     await recommendations(getOptions()).get()
-    const query = httpMock.query.mock.calls[0][0]
+    const apiQuery = httpMock.query.mock.calls[0][0]
     const variables = httpMock.query.mock.calls[0][1]
-    expect(query).toBe('query ($trackingId: String!, $contextId: String!, $experienceId: Int, $items: Int!, $strategy: [RecommendationStrategyInput!], $seed: [RecommendationSeedInput!], $rules: [RecommendationRuleInput!], $locale: String) {\n  property(trackingId: $trackingId, locale: $locale) {\n    visitor(contextId: $contextId) {\n      productRecommendations(experienceId: $experienceId, items: $items, strategy: $strategy, seed: $seed, customRules: $rules) {\n        strategy\n        weight\n        product {\n          product_id: productId\n          currency\n          sku_code: skuCode\n          name\n          description\n          url\n          categories {\n            name\n          }\n          images {\n            url\n          }\n          stock\n          language\n          locale\n          views\n          views_ip: viewsIp\n          unit_sale_price: unitSalePrice\n          unit_price: unitPrice\n          additionalFields\n        }\n      }\n    }\n  }\n}')
+    expect(apiQuery).toBe(query)
     expect(variables).toStrictEqual({
       trackingId: 'menards',
       contextId: '123adwqddqdw',
@@ -142,7 +151,10 @@ describe('testing basic', () => {
     const EXPECTED_TIMEOUT = 1000
     await recommendations(getOptions()).get({ timeout: EXPECTED_TIMEOUT })
     const config = httpMock.query.mock.calls[0][2]
-    expect(config).toEqual({ timeout: EXPECTED_TIMEOUT, url: 'https://api.qubit.com/graphql' })
+    expect(config).toEqual({
+      timeout: EXPECTED_TIMEOUT,
+      url: 'https://api.qubit.com/graphql'
+    })
   })
 
   test('should call getLocale with current options', async () => {
