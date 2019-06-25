@@ -40,8 +40,16 @@ const recommendations = require('../..')(
 
 const recommendations2 = require('../..')(
   {
-    uv: uv,
-    emitMetric: () => {},
+    uv: {
+      ...uv,
+      emit: (...args) => {
+        console.log('SENDING QP', args)
+        uv.emit(...args)
+      }
+    },
+    emitMetric: (...args) => {
+      console.log('SENDING METRIC', args)
+    },
     meta: testProperty
   },
   {
