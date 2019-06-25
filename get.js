@@ -1,5 +1,5 @@
 var _ = require('slapdash')
-var http = require('@qubit/http-api')
+var qubitApi = require('@qubit/qubit-api')
 var getLocale = require('./getLocale')
 
 var query = [
@@ -44,9 +44,7 @@ module.exports = function getRecommendations (config, options) {
     var strategy = settings.strategy || config.strategy
     var limit = settings.limit || config.limit
     var seed = settings.seed || config.seed
-    var timeout = settings.timeout || config.timeout
     var rules = settings.rules || config.rules
-    var url = settings.url || config.url
     var trackingId = settings.trackingId || config.trackingId
     var visitorId = settings.visitorId || config.visitorId
     var defaultCurrency = settings.defaultCurrency || config.defaultCurrency
@@ -76,30 +74,21 @@ module.exports = function getRecommendations (config, options) {
       defaultCurrency: defaultCurrency,
       defaultLanguage: defaultLanguage
     }).then(function (locale) {
-      var data = {
-        query: query,
-        variables: {
-          trackingId: trackingId,
-          contextId: visitorId,
-          experienceId: config.experienceId,
-          items: limit,
-          strategy: [{ name: strategy }],
-          seed: seed,
-          rules: rules,
-          locale: locale
-        }
+      var variables = {
+        trackingId: trackingId,
+        contextId: visitorId,
+        experienceId: config.experienceId,
+        items: limit,
+        strategy: [{ name: strategy }],
+        seed: seed,
+        rules: rules,
+        locale: locale
       }
 
-      var request = http.post(
-        url,
-        JSON.stringify(data),
-        { timeout: timeout }
-      )
-      return request.then(function (result) {
+      return qubitApi.query(query, variables).then(function (result) {
         if (result) {
-          var recs = JSON.parse(result)
           var items = _.get(
-            recs,
+            result,
             'data.property.visitor.productRecommendations'
           )
           if (items && items.length) {
