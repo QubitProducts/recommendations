@@ -44,7 +44,9 @@ module.exports = function getRecommendations (config, options) {
     var strategy = settings.strategy || config.strategy
     var limit = settings.limit || config.limit
     var seed = settings.seed || config.seed
+    var timeout = settings.timeout || config.timeout
     var rules = settings.rules || config.rules
+    var url = settings.url || config.url
     var trackingId = settings.trackingId || config.trackingId
     var visitorId = settings.visitorId || config.visitorId
     var defaultCurrency = settings.defaultCurrency || config.defaultCurrency
@@ -85,10 +87,14 @@ module.exports = function getRecommendations (config, options) {
         locale: locale
       }
 
-      return qubitApi.query(query, variables).then(function (result) {
+      return qubitApi.query(query, variables, {
+        timeout: timeout,
+        url: url
+      }).then(function (result) {
         if (result) {
+          var data = JSON.parse(result)
           var items = _.get(
-            result,
+            data,
             'data.property.visitor.productRecommendations'
           )
           if (items && items.length) {

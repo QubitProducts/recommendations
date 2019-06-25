@@ -1,7 +1,7 @@
 /* global test expect describe beforeEach afterEach jest */
 const uv = require('uv-api')()
 const recommendations = require('../index.js')
-const httpMock = require('@qubit/http-api')
+const httpMock = require('@qubit/qubit-api')
 
 jest.mock('../getLocale')
 const getLocale = require('../getLocale')
@@ -31,8 +31,43 @@ const rec = {
   }
 }
 
+const query = [
+  'query ($trackingId: String!, $contextId: String!, $experienceId: Int, $items: Int!, $strategy: [RecommendationStrategyInput!], $seed: [RecommendationSeedInput!], $rules: [RecommendationRuleInput!], $locale: String) {',
+  '  property(trackingId: $trackingId, locale: $locale) {',
+  '    visitor(contextId: $contextId) {',
+  '      productRecommendations(experienceId: $experienceId, items: $items, strategy: $strategy, seed: $seed, customRules: $rules) {',
+  '        strategy',
+  '        weight',
+  '        product {',
+  '          product_id: productId',
+  '          currency',
+  '          sku_code: skuCode',
+  '          name',
+  '          description',
+  '          url',
+  '          categories {',
+  '            name',
+  '          }',
+  '          images {',
+  '            url',
+  '          }',
+  '          stock',
+  '          language',
+  '          locale',
+  '          views',
+  '          views_ip: viewsIp',
+  '          unit_sale_price: unitSalePrice',
+  '          unit_price: unitPrice',
+  '          additionalFields',
+  '        }',
+  '      }',
+  '    }',
+  '  }',
+  '}'
+].join('\n')
+
 afterEach(() => {
-  httpMock.post.mockClear()
+  httpMock.query.mockClear()
   getLocale.mockClear()
 })
 
@@ -59,11 +94,11 @@ describe('testing basic', () => {
     })
   })
 
-  test('requested url is correct', async () => {
+  test('requested query is correct', async () => {
     uv.emit('ecView', { language, currency })
     await recommendations(getOptions()).get()
-    const calledUrl = httpMock.post.mock.calls[0][0]
-    expect(calledUrl).toBe('https://api.qubit.com/graphql')
+    const calledQuery = httpMock.query.mock.calls[0][0]
+    expect(calledQuery).toBe(query)
   })
 
   test('second instanciation should be independant', async () => {
@@ -76,41 +111,38 @@ describe('testing basic', () => {
     const recsB = recommendations(optionsB)
 
     await recsA.get()
-    const calledUrlA = httpMock.post.mock.calls[0][0]
-    expect(calledUrlA).toBe('https://recs.qubit.com/vc/recommend/2.0/menards?strategy=pop&id=123adwqddqdw&n=10&experienceId=123456&iterationId=600100&variationId=165767&locale=en-gb-gbp')
+    const calledVariablesA = httpMock.query.mock.calls[0][1]
+    expect(calledVariablesA.experienceId).toBe(123456)
 
     await recsB.get()
-    const calledUrlB = httpMock.post.mock.calls[1][0]
-    expect(calledUrlB).toBe('https://recs.qubit.com/vc/recommend/2.0/menards?strategy=pop&id=123adwqddqdw&n=10&experienceId=4567&iterationId=600100&variationId=165767&locale=en-gb-gbp')
+    const calledVariablesB = httpMock.query.mock.calls[1][1]
+    expect(calledVariablesB.experienceId).toBe(4567)
   })
 
   test('data passed is correct', async () => {
     uv.emit('ecView', { language, currency })
     await recommendations(getOptions()).get()
-    const data = httpMock.post.mock.calls[0][1]
-    expect(data).toBe(
-      JSON.stringify({
-        query:
-          'query ($trackingId: String!, $contextId: String!, $experienceId: Int, $items: Int!, $strategy: [RecommendationStrategyInput!], $seed: [RecommendationSeedInput!], $rules: [RecommendationRuleInput!], $locale: String) {\n  property(trackingId: $trackingId, locale: $locale) {\n    visitor(contextId: $contextId) {\n      productRecommendations(experienceId: $experienceId, items: $items, strategy: $strategy, seed: $seed, customRules: $rules) {\n        strategy\n        weight\n        product {\n          product_id: productId\n          currency\n          sku_code: skuCode\n          name\n          description\n          url\n          categories {\n            name\n          }\n          images {\n            url\n          }\n          stock\n          language\n          locale\n          views\n          views_ip: viewsIp\n          unit_sale_price: unitSalePrice\n          unit_price: unitPrice\n          additionalFields\n        }\n      }\n    }\n  }\n}',
-        variables: {
-          trackingId: 'menards',
-          contextId: '123adwqddqdw',
-          experienceId: 123456,
-          items: 10,
-          strategy: [{ name: 'pop' }],
-          seed: null,
-          locale: 'en-gb-gbp'
-        }
-      })
-    )
+    const query = httpMock.query.mock.calls[0][0]
+    const variables = httpMock.query.mock.calls[0][1]
+    expect(query).toBe('query ($trackingId: String!, $contextId: String!, $experienceId: Int, $items: Int!, $strategy: [RecommendationStrategyInput!], $seed: [RecommendationSeedInput!], $rules: [RecommendationRuleInput!], $locale: String) {\n  property(trackingId: $trackingId, locale: $locale) {\n    visitor(contextId: $contextId) {\n      productRecommendations(experienceId: $experienceId, items: $items, strategy: $strategy, seed: $seed, customRules: $rules) {\n        strategy\n        weight\n        product {\n          product_id: productId\n          currency\n          sku_code: skuCode\n          name\n          description\n          url\n          categories {\n            name\n          }\n          images {\n            url\n          }\n          stock\n          language\n          locale\n          views\n          views_ip: viewsIp\n          unit_sale_price: unitSalePrice\n          unit_price: unitPrice\n          additionalFields\n        }\n      }\n    }\n  }\n}')
+    expect(variables).toStrictEqual({
+      trackingId: 'menards',
+      contextId: '123adwqddqdw',
+      experienceId: 123456,
+      items: 10,
+      strategy: [{ name: 'pop' }],
+      seed: null,
+      locale: 'en-gb-gbp',
+      rules: undefined
+    })
   })
 
   test('called with the correct timeout', async () => {
     uv.emit('ecView', { language, currency })
     const EXPECTED_TIMEOUT = 1000
     await recommendations(getOptions()).get({ timeout: EXPECTED_TIMEOUT })
-    const config = httpMock.post.mock.calls[0][2]
-    expect(config).toEqual({ timeout: EXPECTED_TIMEOUT })
+    const config = httpMock.query.mock.calls[0][2]
+    expect(config).toEqual({ timeout: EXPECTED_TIMEOUT, url: 'https://api.qubit.com/graphql' })
   })
 
   test('should call getLocale with current options', async () => {
@@ -168,7 +200,6 @@ describe('testing basic', () => {
   test('responds with recs for basic setup', async () => {
     const options = getOptions()
     uv.emit('ecView', { language, currency })
-    // expect.assertions(4)
 
     const recs = await recommendations(options).get()
     expect(recs).toBeInstanceOf(Array)
