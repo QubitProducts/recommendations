@@ -1,7 +1,7 @@
 /* global test expect describe beforeEach afterEach jest */
 const uv = require('uv-api')()
 const recommendations = require('../index.js')
-const httpMock = require('@qubit/http-api')
+const httpMock = require('@qubit/qubit-api')
 
 jest.mock('../getLocale')
 const getLocale = require('../getLocale')
@@ -21,43 +21,92 @@ const getOptions = (overrides = {}) => {
 }
 
 const rec = {
-  id: 'ABC123',
-  weight: '0.9',
-  strategy: 'pop',
-  position: 1
+  data: {
+    property: {
+      visitor: {
+        productRecommendations: [
+          {
+            weight: 202.5,
+            strategy: 'trending_ols_views_1',
+            product: {
+              product_id: '730699',
+              additionalFields: {
+                gender: 'women'
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
 }
 
+const query = `
+query ($trackingId: String!, $contextId: String!, $experienceId: Int, $items: Int!, $strategy: [RecommendationStrategyInput!], $seed: [RecommendationSeedInput!], $rules: [RecommendationRuleInput!], $locale: String) {
+  property(trackingId: $trackingId, locale: $locale) {
+    visitor(contextId: $contextId) {
+      productRecommendations(experienceId: $experienceId, items: $items, strategy: $strategy, seed: $seed, customRules: $rules) {
+        strategy
+        weight
+        product {
+          product_id: productId
+          currency
+          sku_code: skuCode
+          name
+          description
+          url
+          categories {
+            name
+          }
+          images {
+            url
+          }
+          stock
+          language
+          locale
+          views
+          views_ip: viewsIp
+          unit_sale_price: unitSalePrice
+          unit_price: unitPrice
+          additionalFields
+        }
+      }
+    }
+  }
+}
+`
+
 afterEach(() => {
-  httpMock.post.mockClear()
+  httpMock.query.mockClear()
   getLocale.mockClear()
 })
 
 test('throws error if options is not present', () => {
-  expect(() => (recommendations())).toThrow()
+  expect(() => recommendations()).toThrow()
 })
 
 describe('testing basic', () => {
   let language = 'en-GB'
   let currency = 'GBP'
   beforeEach(() => {
-    httpMock.__setRecs({
-      result: {
-        items: [ rec ]
-      }
-    })
+    httpMock.__setRecs(rec)
     getLocale.mockImplementation(options => {
-      return Promise.resolve([
-        language || options.defaultLanguage,
-        currency || options.defaultCurrency
-      ].join('-').toLowerCase())
+      return Promise.resolve(
+        [
+          language || options.defaultLanguage,
+          currency || options.defaultCurrency
+        ]
+          .join('-')
+          .toLowerCase()
+      )
     })
   })
 
-  test('requested url is correct', async () => {
+  test('requested query is correct', async () => {
     uv.emit('ecView', { language, currency })
     await recommendations(getOptions()).get()
-    const calledUrl = httpMock.post.mock.calls[0][0]
-    expect(calledUrl).toBe('https://recs.qubit.com/vc/recommend/2.0/menards?strategy=pop&id=123adwqddqdw&n=10&experienceId=123456&iterationId=600100&variationId=165767&locale=en-gb-gbp')
+    const calledQuery = httpMock.query.mock.calls[0][0]
+    expect(calledQuery).toBe(query)
   })
 
   test('second instanciation should be independant', async () => {
@@ -70,27 +119,42 @@ describe('testing basic', () => {
     const recsB = recommendations(optionsB)
 
     await recsA.get()
-    const calledUrlA = httpMock.post.mock.calls[0][0]
-    expect(calledUrlA).toBe('https://recs.qubit.com/vc/recommend/2.0/menards?strategy=pop&id=123adwqddqdw&n=10&experienceId=123456&iterationId=600100&variationId=165767&locale=en-gb-gbp')
+    const calledVariablesA = httpMock.query.mock.calls[0][1]
+    expect(calledVariablesA.experienceId).toBe(123456)
 
+    httpMock.__setRecs(rec)
     await recsB.get()
-    const calledUrlB = httpMock.post.mock.calls[1][0]
-    expect(calledUrlB).toBe('https://recs.qubit.com/vc/recommend/2.0/menards?strategy=pop&id=123adwqddqdw&n=10&experienceId=4567&iterationId=600100&variationId=165767&locale=en-gb-gbp')
+    const calledVariablesB = httpMock.query.mock.calls[1][1]
+    expect(calledVariablesB.experienceId).toBe(4567)
   })
 
   test('data passed is correct', async () => {
     uv.emit('ecView', { language, currency })
     await recommendations(getOptions()).get()
-    const data = httpMock.post.mock.calls[0][1]
-    expect(data).toBe(JSON.stringify({ h: ['all'] }))
+    const apiQuery = httpMock.query.mock.calls[0][0]
+    const variables = httpMock.query.mock.calls[0][1]
+    expect(apiQuery).toBe(query)
+    expect(variables).toStrictEqual({
+      trackingId: 'menards',
+      contextId: '123adwqddqdw',
+      experienceId: 123456,
+      items: 10,
+      strategy: [{ name: 'pop' }],
+      seed: null,
+      locale: 'en-gb-gbp',
+      rules: undefined
+    })
   })
 
   test('called with the correct timeout', async () => {
     uv.emit('ecView', { language, currency })
     const EXPECTED_TIMEOUT = 1000
     await recommendations(getOptions()).get({ timeout: EXPECTED_TIMEOUT })
-    const config = httpMock.post.mock.calls[0][2]
-    expect(config).toEqual({ timeout: EXPECTED_TIMEOUT })
+    const config = httpMock.query.mock.calls[0][2]
+    expect(config).toEqual({
+      timeout: EXPECTED_TIMEOUT,
+      url: 'https://api.qubit.com/graphql'
+    })
   })
 
   test('should call getLocale with current options', async () => {
@@ -129,8 +193,12 @@ describe('testing basic', () => {
     }
     const recommendations = require('../index.js')(options, config)
     await recommendations.get()
-    expect(getLocale.mock.calls[0][0].defaultLanguage).toEqual(config.defaultLanguage)
-    expect(getLocale.mock.calls[0][0].defaultCurrency).toEqual(config.defaultCurrency)
+    expect(getLocale.mock.calls[0][0].defaultLanguage).toEqual(
+      config.defaultLanguage
+    )
+    expect(getLocale.mock.calls[0][0].defaultCurrency).toEqual(
+      config.defaultCurrency
+    )
   })
 
   test('locale defaults to request settings when present', async () => {
@@ -144,10 +212,14 @@ describe('testing basic', () => {
   test('responds with recs for basic setup', async () => {
     const options = getOptions()
     uv.emit('ecView', { language, currency })
-    expect.assertions(1)
 
     const recs = await recommendations(options).get()
     expect(recs).toBeInstanceOf(Array)
+    expect(recs[0].weight).toEqual(202.5)
+    expect(recs[0].strategy).toEqual('trending_ols_views_1')
+    expect(recs[0].id).toEqual('730699')
+    expect(recs[0].details.product_id).toEqual('730699')
+    expect(recs[0].details.gender).toEqual('women')
   })
 })
 

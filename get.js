@@ -1,6 +1,41 @@
 var _ = require('slapdash')
-var http = require('@qubit/http-api')
+var qubitApi = require('@qubit/qubit-api')
 var getLocale = require('./getLocale')
+
+var query = `
+query ($trackingId: String!, $contextId: String!, $experienceId: Int, $items: Int!, $strategy: [RecommendationStrategyInput!], $seed: [RecommendationSeedInput!], $rules: [RecommendationRuleInput!], $locale: String) {
+  property(trackingId: $trackingId, locale: $locale) {
+    visitor(contextId: $contextId) {
+      productRecommendations(experienceId: $experienceId, items: $items, strategy: $strategy, seed: $seed, customRules: $rules) {
+        strategy
+        weight
+        product {
+          product_id: productId
+          currency
+          sku_code: skuCode
+          name
+          description
+          url
+          categories {
+            name
+          }
+          images {
+            url
+          }
+          stock
+          language
+          locale
+          views
+          views_ip: viewsIp
+          unit_sale_price: unitSalePrice
+          unit_price: unitPrice
+          additionalFields
+        }
+      }
+    }
+  }
+}
+`
 
 module.exports = function getRecommendations (config, options) {
   return function (settings) {
@@ -17,25 +52,23 @@ module.exports = function getRecommendations (config, options) {
     var defaultCurrency = settings.defaultCurrency || config.defaultCurrency
     var defaultLanguage = settings.defaultLanguage || config.defaultLanguage
 
-    if (!_.isArray(seed)) {
-      seed = [seed]
-    }
-
-    // convert { category: 'x' } -> { type: 'c', id: 'x' }
-    // hopefully, the API will add support for the former
-    // at which point we can remove this mapping
-    seed = _.map(seed, function (s) {
-      if (_.isObject(s) && s.category) {
-        return { type: 'c', id: s.category }
-      } else {
-        return s
+    if (seed !== 'all') {
+      if (!_.isArray(seed)) {
+        seed = [seed]
       }
-    })
 
-    var data = { h: seed }
-
-    if (rules) {
-      _.assign(data, { rules: rules })
+      // convert { category: 'x' } -> { type: 'c', id: 'x' }
+      // hopefully, the API will add support for the former
+      // at which point we can remove this mapping
+      seed = _.map(seed, function (s) {
+        if (_.isObject(s) && s.category) {
+          return { type: 'CATEGORY', value: s.category }
+        } else {
+          return { type: 'PRODUCT', value: s }
+        }
+      })
+    } else {
+      seed = null
     }
 
     return getLocale({
@@ -43,25 +76,47 @@ module.exports = function getRecommendations (config, options) {
       defaultCurrency: defaultCurrency,
       defaultLanguage: defaultLanguage
     }).then(function (locale) {
-      var requestUrl = [
-        url,
-        trackingId,
-        '?strategy=' + strategy,
-        '&id=' + visitorId,
-        '&n=' + limit,
-        '&experienceId=' + config.experienceId,
-        '&iterationId=' + config.iterationId,
-        '&variationId=' + config.variationId,
-        '&locale=' + locale
-      ].join('')
+      var variables = {
+        trackingId: trackingId,
+        contextId: visitorId,
+        experienceId: config.experienceId,
+        items: limit,
+        strategy: [{ name: strategy }],
+        seed: seed,
+        rules: rules,
+        locale: locale
+      }
 
-      var request = http.post(requestUrl, JSON.stringify(data), { timeout: timeout })
-      return request.then(function (result) {
+      return qubitApi.query(query, variables, {
+        timeout: timeout,
+        url: url
+      }).then(function (result) {
         if (result) {
-          var recs = JSON.parse(result)
-          var items = _.get(recs, 'result.items')
-
+          var items = _.get(
+            result,
+            'data.property.visitor.productRecommendations'
+          )
           if (items && items.length) {
+            // Convert back to native Recs API format to support legacy experiences
+            items = _.map(items, function (origItem) {
+              var item = _.assign({}, origItem)
+              item.id = item.product.product_id
+              item.details = item.product
+              if (item.product.images) {
+                item.product.images = _.pluck(item.product.images, 'url')
+              }
+              if (item.product.categories) {
+                item.product.categories = _.pluck(item.product.categories, 'name')
+              }
+              if (item.product.additionalFields) {
+                _.objectEach(item.product.additionalFields, function (v, k) {
+                  item.details[k] = v
+                })
+              }
+              delete item.details.additionalFields
+              delete item.product
+              return item
+            })
             return items
           }
         }
