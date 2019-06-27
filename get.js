@@ -2,40 +2,40 @@ var _ = require('slapdash')
 var qubitApi = require('@qubit/qubit-api')
 var getLocale = require('./getLocale')
 
-var query = [
-  'query ($trackingId: String!, $contextId: String!, $experienceId: Int, $items: Int!, $strategy: [RecommendationStrategyInput!], $seed: [RecommendationSeedInput!], $rules: [RecommendationRuleInput!], $locale: String) {',
-  '  property(trackingId: $trackingId, locale: $locale) {',
-  '    visitor(contextId: $contextId) {',
-  '      productRecommendations(experienceId: $experienceId, items: $items, strategy: $strategy, seed: $seed, customRules: $rules) {',
-  '        strategy',
-  '        weight',
-  '        product {',
-  '          product_id: productId',
-  '          currency',
-  '          sku_code: skuCode',
-  '          name',
-  '          description',
-  '          url',
-  '          categories {',
-  '            name',
-  '          }',
-  '          images {',
-  '            url',
-  '          }',
-  '          stock',
-  '          language',
-  '          locale',
-  '          views',
-  '          views_ip: viewsIp',
-  '          unit_sale_price: unitSalePrice',
-  '          unit_price: unitPrice',
-  '          additionalFields',
-  '        }',
-  '      }',
-  '    }',
-  '  }',
-  '}'
-].join('\n')
+var query = `
+query ($trackingId: String!, $contextId: String!, $experienceId: Int, $items: Int!, $strategy: [RecommendationStrategyInput!], $seed: [RecommendationSeedInput!], $rules: [RecommendationRuleInput!], $locale: String) {
+  property(trackingId: $trackingId, locale: $locale) {
+    visitor(contextId: $contextId) {
+      productRecommendations(experienceId: $experienceId, items: $items, strategy: $strategy, seed: $seed, customRules: $rules) {
+        strategy
+        weight
+        product {
+          product_id: productId
+          currency
+          sku_code: skuCode
+          name
+          description
+          url
+          categories {
+            name
+          }
+          images {
+            url
+          }
+          stock
+          language
+          locale
+          views
+          views_ip: viewsIp
+          unit_sale_price: unitSalePrice
+          unit_price: unitPrice
+          additionalFields
+        }
+      }
+    }
+  }
+}
+`
 
 module.exports = function getRecommendations (config, options) {
   return function (settings) {
@@ -98,7 +98,8 @@ module.exports = function getRecommendations (config, options) {
           )
           if (items && items.length) {
             // Convert back to native Recs API format to support legacy experiences
-            items = _.map(items, function (item) {
+            items = _.map(items, function (origItem) {
+              var item = _.assign({}, origItem)
               item.id = item.product.product_id
               item.details = item.product
               if (item.product.images) {
