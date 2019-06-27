@@ -41,40 +41,40 @@ const rec = {
   }
 }
 
-const query = [
-  'query ($trackingId: String!, $contextId: String!, $experienceId: Int, $items: Int!, $strategy: [RecommendationStrategyInput!], $seed: [RecommendationSeedInput!], $rules: [RecommendationRuleInput!], $locale: String) {',
-  '  property(trackingId: $trackingId, locale: $locale) {',
-  '    visitor(contextId: $contextId) {',
-  '      productRecommendations(experienceId: $experienceId, items: $items, strategy: $strategy, seed: $seed, customRules: $rules) {',
-  '        strategy',
-  '        weight',
-  '        product {',
-  '          product_id: productId',
-  '          currency',
-  '          sku_code: skuCode',
-  '          name',
-  '          description',
-  '          url',
-  '          categories {',
-  '            name',
-  '          }',
-  '          images {',
-  '            url',
-  '          }',
-  '          stock',
-  '          language',
-  '          locale',
-  '          views',
-  '          views_ip: viewsIp',
-  '          unit_sale_price: unitSalePrice',
-  '          unit_price: unitPrice',
-  '          additionalFields',
-  '        }',
-  '      }',
-  '    }',
-  '  }',
-  '}'
-].join('\n')
+const query = `
+query ($trackingId: String!, $contextId: String!, $experienceId: Int, $items: Int!, $strategy: [RecommendationStrategyInput!], $seed: [RecommendationSeedInput!], $rules: [RecommendationRuleInput!], $locale: String) {
+  property(trackingId: $trackingId, locale: $locale) {
+    visitor(contextId: $contextId) {
+      productRecommendations(experienceId: $experienceId, items: $items, strategy: $strategy, seed: $seed, customRules: $rules) {
+        strategy
+        weight
+        product {
+          product_id: productId
+          currency
+          sku_code: skuCode
+          name
+          description
+          url
+          categories {
+            name
+          }
+          images {
+            url
+          }
+          stock
+          language
+          locale
+          views
+          views_ip: viewsIp
+          unit_sale_price: unitSalePrice
+          unit_price: unitPrice
+          additionalFields
+        }
+      }
+    }
+  }
+}
+`
 
 afterEach(() => {
   httpMock.query.mockClear()
