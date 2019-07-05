@@ -89,7 +89,8 @@ module.exports = function getRecommendations (config, options) {
 
       return qubitApi.query(query, variables, {
         timeout: timeout,
-        url: url
+        url: url,
+        package: '@qubit/recommendations'
       }).then(function (result) {
         if (result) {
           var items = _.get(
