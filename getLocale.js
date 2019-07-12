@@ -9,7 +9,8 @@ module.exports = function getLocale (options) {
       if (language && currency) {
         currentLocale = [language, currency].join('-')
       }
-      resolve(currentLocale.toLowerCase())
+      var locale = options.staticLocale || currentLocale
+      resolve(locale.toLowerCase())
     }).replay()
   })
 }

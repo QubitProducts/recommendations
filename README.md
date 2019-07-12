@@ -105,6 +105,12 @@ Allows you to add a fallback currency for the recs endpoint locale; e.g. 'GBP'
 
 Allows you to add a fallback language for the recs endpoint locale; e.g. 'en-gb'
 
+### locale
+*type*: `String`
+*default*: `undefined`
+
+Allows you to override the default locale for the recs endpoint; e.g. 'en-gb'
+
 ## Usage
 
 ### Basic
