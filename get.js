@@ -51,6 +51,7 @@ module.exports = function getRecommendations (config, options) {
     var visitorId = settings.visitorId || config.visitorId
     var defaultCurrency = settings.defaultCurrency || config.defaultCurrency
     var defaultLanguage = settings.defaultLanguage || config.defaultLanguage
+    var staticLocale = settings.locale || config.locale
 
     if (seed !== 'all') {
       if (!_.isArray(seed)) {
@@ -74,7 +75,8 @@ module.exports = function getRecommendations (config, options) {
     return getLocale({
       uv: options.uv,
       defaultCurrency: defaultCurrency,
-      defaultLanguage: defaultLanguage
+      defaultLanguage: defaultLanguage,
+      staticLocale: staticLocale
     }).then(function (locale) {
       var variables = {
         trackingId: trackingId,

@@ -153,7 +153,8 @@ describe('testing basic', () => {
     const config = httpMock.query.mock.calls[0][2]
     expect(config).toEqual({
       timeout: EXPECTED_TIMEOUT,
-      url: 'https://api.qubit.com/graphql'
+      url: 'https://api.qubit.com/graphql',
+      package: '@qubit/recommendations'
     })
   })
 
